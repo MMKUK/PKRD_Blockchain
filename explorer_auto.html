@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>🔍 PKRD Explorer — Live Refresh</title>
+  <style>
+    body { background: #0d1117; color: #00ff99; font-family: monospace; padding: 20px; }
+    h1, h2 { color: #00ffcc; }
+    button { background: #000; color: #00ff99; padding: 6px 12px; margin: 5px; border: 1px solid #00ff99; cursor: pointer; }
+    pre { background: #000; padding: 10px; overflow-x: auto; border: 1px solid #00ff99; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>🔍 PKRD Explorer — Live Mempool View</h1>
+  <button onclick="loadFile('inbox.json', 'inboxDisplay')">📥 View Inbox</button>
+  <button onclick="loadFile('outbox.json', 'outboxDisplay')">📡 View Outbox</button>
+  <button onclick="loadFile('mempool.json', 'mempoolDisplay')">💾 View Mempool</button>
+  <button onclick="loadLatestBlock()">📦 View Latest Block</button>
+
+  <div id="inboxDisplay"></div>
+  <div id="outboxDisplay"></div>
+  <div id="mempoolDisplay"></div>
+  <div id="blockDisplay"></div>
+
+  <script>
+    function loadFile(filename, displayId) {
+      fetch(filename)
+        .then(response => {
+          if (!response.ok) throw new Error(`❌ Failed to load ${filename}`);
+          return response.text();
+        })
+        .then(data => {
+          document.getElementById(displayId).innerHTML = `
+            <h2>📂 ${filename}</h2><pre>${data}</pre>`;
+        })
+        .catch(err => {
+          document.getElementById(displayId).innerHTML = `<p class="error">⚠️ ${err.message}</p>`;
+        });
+    }
+
+    function loadLatestBlock() {
+      fetch(".")
+        .then(response => response.text())
+        .then(text => {
+          const files = text.match(/block_\d+\.json/g);
+          if (!files || files.length === 0) throw new Error("No block files found");
+          const latest = files.sort((a, b) => {
+            const numA = parseInt(a.match(/\d+/)[0]);
+            const numB = parseInt(b.match(/\d+/)[0]);
+            return numB - numA;
+          })[0];
+          loadFile(latest, 'blockDisplay');
+        })
+        .catch(err => {
+          document.getElementById('blockDisplay').innerHTML = `<p class="error">⚠️ ${err.message}</p>`;
+        });
+    }
+  </script>
+</body>
+</html>

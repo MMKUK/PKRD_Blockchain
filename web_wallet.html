@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>PKRD Web Wallet — Sign & Send TX</title>
+  <style>
+    body { background: #111; color: #0f0; font-family: monospace; padding: 30px; }
+    input, button { font-size: 1rem; padding: 5px; margin: 5px; background: #000; color: #0f0; border: 1px solid #0f0; }
+    label { display: block; margin-top: 10px; }
+    .success { color: #6f6; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🪙 PKRD Web Wallet — Sign & Send</h1>
+  <form id="txForm">
+    <label>From (Wallet Address): <input type="text" id="sender" value="0xMohsin" required></label>
+    <label>To (Receiver Address): <input type="text" id="receiver" value="0xFriend" required></label>
+    <label>Amount (PKRD): <input type="number" id="amount" value="1000" required></label>
+    <label>Private Key: <input type="text" id="privateKey" placeholder="secretkey123" required></label>
+    <button type="submit">🚀 Sign + Download TX</button>
+  </form>
+  <div id="result" class="success"></div>
+
+  <script>
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    document.getElementById("txForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const sender = document.getElementById("sender").value;
+      const receiver = document.getElementById("receiver").value;
+      const amount = document.getElementById("amount").value;
+      const privateKey = document.getElementById("privateKey").value;
+      const nonce = Date.now().toString();
+
+      const zkproof = await sha256(`${sender}:${receiver}:${amount}:${nonce}`);
+      const message = `${sender}:${receiver}:${amount}:${nonce}:${zkproof}`;
+      const signature = await sha256(`${message}:${privateKey}`);
+
+      const tx = {
+        from: sender,
+        to: receiver,
+        amount: parseFloat(amount),
+        zkproof: zkproof,
+        nonce: nonce,
+        gas: 0.001,
+        timestamp: Math.floor(Date.now() / 1000),
+        signature: signature
+      };
+
+      const blob = new Blob([JSON.stringify([tx], null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "wallet_outbox.json";
+      a.click();
+      document.getElementById("result").textContent = "✅ TX signed + downloaded: wallet_outbox.json";
+    });
+  </script>
+</body>
+</html>
